@@ -242,7 +242,7 @@
     const ui = mount(wrap, "alibi.mp4", "영상이 기억하는 시간", api);
     let opened = false;
     ui.slot.innerHTML =
-      '<div class="player"><i class="bar"></i><div class="cap">목에 흉터가 사라졌군.</div></div>' +
+      '<div class="player"><i class="bar"></i><div class="cap">목에 흉터가 사라졌군.　목에 흉터가 사라졌군.　목에 흉터가 사라졌군.</div></div>' +
       '<div class="tools">' +
       '<button type="button" class="tiny" data-v="play">재생</button>' +
       '<button type="button" class="tiny" data-v="meta">메타데이터</button>' +
@@ -256,7 +256,7 @@
           view.innerHTML = "<p>대사가 한 바퀴 돌고, 같은 입모양으로 다시 시작한다. 내용만 봐서는 이 파일이 언제 만들어졌는지 알 수 없다.</p>";
           ui.say("반복은 들린다. 만든 시각은 파일 쪽에 있다.");
         } else if (v === "size") {
-          view.innerHTML = "<p>10초. 용량에 수상한 건 없다. 이 파일에 뭘 숨기진 않았군.</p>";
+          view.innerHTML = "<p>10초. 용량은 그 길이에 비해 평범하다. 숨긴 용량은 이쪽이 아니다.</p>";
           ui.say("용량은 정상이다. 다른 칸을 본다.");
         } else {
           opened = true;
@@ -284,7 +284,6 @@
 
   function hex(wrap, api) {
     const ui = mount(wrap, "loop_config.dat", "열리지 않는 파일", api);
-    // 실제 loop_config.dat 앞 16바이트 (앞 3칸이 지워진 상태). 뒤쪽 6C 6F 6F 70... = "loop_c"
     const raw = "00 00 00 08 6A A0 E4 6A 02 03 6C 6F 6F 70 5F 63".split(" ");
     ui.slot.innerHTML =
       "<p>확장자는 dat. 앞부분이 비어 있어 도구가 형식을 모른다. 매직 넘버를 되돌리면, 뒤에 이어진 본문을 읽을 수 있다.</p>" +
@@ -295,63 +294,49 @@
       '<button type="button" class="tiny" data-sig="png">PNG · 89 50 4E 47</button></div>' +
       '<div data-out></div>';
     const bytes = ui.slot.querySelector("[data-bytes]");
-    // 고른 시그니처를 맨 앞에 덮어쓴다 (HxD에서 앞 바이트를 고치는 것과 같다)
     function paint(head, hot) {
       const h = head ? head.split(" ") : [];
       const all = raw.map((b, i) => (i < h.length ? h[i] : b));
       bytes.innerHTML = all.map((b, i) => '<span class="' + (hot && i < h.length ? "hot" : "") + '">' + b + "</span>").join("");
     }
     paint("", false);
-    // 결과 한 줄 (맞으면 초록, 틀리면 빨강). 아래 질문의 메시지와 따로 둔다
-    const verdict = document.createElement("p");
-    verdict.setAttribute("data-verdict", "");
-    ui.slot.querySelector(".tools").after(verdict);
-    const out = ui.slot.querySelector("[data-out]");
-    let built = false;
-    function showVerdict(text, ok) {
-      verdict.className = ok ? "good" : "bad";
-      verdict.textContent = text;
-    }
-    // 압축을 푼 결과 + 질문. 처음 한 번만 만들고, 이후엔 보이기/숨기기만 한다
-    function buildOut() {
-      if (built) return;
-      built = true;
-      out.innerHTML =
-        '<div class="split"><div class="col"><h5>autoplay.py · 계획</h5><pre class="script"># 22:50 자동 재생\n# 22:52 기숙사 나가기\n# 23:10 연구동 도착, NAS 접속\n# 23:14 v7 정리 (휴지통까지)\n# 23:40 복귀\n# 교수님이 내 이름 빼겠다고 함.\n# 졸업 요건인데...\n# FINAL: 2250\n\nplay("alibi.mp4", loop=True)  # 22:50</pre></div>' +
-        '<div class="col"><h5>nas_audit.log · 실행</h5><pre class="script">23:10:18 AUTH_OK\nuser=minyoung\nsrc=172.16.40.18\nap=LAB-3F\n\n<span class="mark">23:14:02 UNLINK\n/Research/Final/paper_final_v7.docx\nuser=minyoung</span>\n\n23:14:11 TRASH_EMPTY\nuser=minyoung\n23:14:27 LOGOUT</pre></div></div>' +
-        "<p>무엇을 근거로 실행을 말할 수 있나.</p><div class=\"q\">" +
-        '<button type="button" class="choice" data-a="plan">주석에 적힌 23:14</button>' +
-        '<button type="button" class="choice" data-a="log">UNLINK 로그만</button>' +
-        '<button type="button" class="choice" data-a="both">주석의 시각과 UNLINK가 같다</button></div>';
-      out.querySelectorAll("[data-a]").forEach((b) => {
-        b.onclick = () => {
-          if (b.dataset.a === "plan") ui.say("주석은 의도다. 그 시각에 삭제가 일어났는지는 로그가 말한다.", "bad");
-          else if (b.dataset.a === "log") ui.say("로그는 실행이다. 왜 하필 그 시각인지는 주석이 맞춘다. 둘을 같이 남긴다.", "bad");
-          else {
-            ui.finish("계획은 스크립트에, 실행은 연구동 AP의 minyoung 계정에 있다. 23:14:02 삭제, 이어서 휴지통. TRACE-2250.");
-            // 끝난 뒤에도 시그니처 버튼은 다시 눌러 볼 수 있게 둔다
-            ui.slot.querySelectorAll("[data-sig]").forEach((x) => { x.disabled = false; });
-          }
-        };
-      });
-    }
     ui.slot.querySelectorAll("[data-sig]").forEach((btn) => {
       btn.onclick = () => {
         const s = btn.dataset.sig;
-        ui.slot.querySelectorAll("[data-sig]").forEach((x) => x.classList.toggle("on", x === btn));
+        const out = ui.slot.querySelector("[data-out]");
         if (s === "zip") {
           paint("50 4B 03 04", false);
           out.hidden = true;
-          showVerdict("ZIP 매직넘버(50 4B 03 04)로 고쳐도 열리지 않는다. ZIP이 아니구나.", false);
+          ui.say("뒤에 로컬 파일 헤더가 이어지지 않는다. ZIP이 아니다.", "bad");
         } else if (s === "png") {
           paint("89 50 4E 47", false);
           out.hidden = true;
-          showVerdict("PNG 매직넘버(89 50 4E 47)로 고쳐도 그림이 나오지 않는다. PNG가 아니구나.", false);
-        } else {
+          ui.say("PNG라면 IHDR이 와야 한다. 이 본문은 그림이 아니다.", "bad");
+        } else if (out.dataset.done === "1") {
           paint("1F 8B 08", true);
-          buildOut();
           out.hidden = false;
-          showVerdict("GZIP 매직넘버(1F 8B 08)로 고치니 압축이 풀린다. 안에 autoplay.py, nas_audit.log가 들어 있었다. 이게 맞구나!", true);
+          ui.say("GZIP 시그니처와 본문이 이어진다. 압축을 푼다.");
+        } else {
+          out.dataset.done = "1";
+          paint("1F 8B 08", true);
+          ui.say("GZIP 시그니처와 본문이 이어진다. 압축을 푼다.");
+          ui.slot.querySelector("[data-out]").innerHTML =
+            '<div class="split"><div class="col"><h5>autoplay.py · 계획</h5><pre class="script"># 22:50 자동 재생\n# 22:52 기숙사 나가기\n# 23:10 연구동 도착, NAS 접속\n# 23:14 v7 정리 (휴지통까지)\n# 23:40 복귀\n# 교수님이 내 이름 빼겠다고 함.\n# 졸업 요건인데...\n# FINAL: 2250\n\nplay("alibi.mp4", loop=True)  # 22:50</pre></div>' +
+            '<div class="col"><h5>nas_audit.log · 실행</h5><pre class="script">23:10:18 AUTH_OK\nuser=minyoung\nsrc=172.16.40.18\nap=LAB-3F\n\n<span class="mark">23:14:02 UNLINK\n/Research/Final/paper_final_v7.docx\nuser=minyoung</span>\n\n23:14:11 TRASH_EMPTY\nuser=minyoung\n23:14:27 LOGOUT</pre></div></div>' +
+            "<p>무엇을 근거로 실행을 말할 수 있나.</p><div class=\"q\">" +
+            '<button type="button" class="choice" data-a="plan">주석에 적힌 23:14</button>' +
+            '<button type="button" class="choice" data-a="log">UNLINK 로그만</button>' +
+            '<button type="button" class="choice" data-a="both">주석의 시각과 UNLINK가 같다</button></div>';
+          ui.slot.querySelectorAll("[data-a]").forEach((b) => {
+            b.onclick = () => {
+              if (b.dataset.a === "plan") ui.say("주석은 의도다. 그 시각에 삭제가 일어났는지는 로그가 말한다.", "bad");
+              else if (b.dataset.a === "log") ui.say("로그는 실행이다. 왜 하필 그 시각인지는 주석이 맞춘다. 둘을 같이 남긴다.", "bad");
+              else {
+                ui.finish("계획은 스크립트에, 실행은 연구동 AP의 minyoung 계정에 있다. 23:14:02 삭제, 이어서 휴지통. TRACE-2250.");
+                ui.slot.querySelectorAll("[data-sig]").forEach((x) => { x.disabled = false; });
+              }
+            };
+          });
         }
       };
     });
