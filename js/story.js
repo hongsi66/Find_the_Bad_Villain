@@ -298,7 +298,7 @@ window.STORY.SCENES = {
     focus: "minyoung",
     lines: [
       { who: "nar", text: "같은 방. 창밖만 더 어두워져 있다. 파일 목록은 대부분 평범한 영상과 문서다. 그중 하나가 열리지 않는다." },
-      { who: "nar", text: "loop_config.dat\n알 수 없는 형식 · 8KB\n파일을 열 수 없습니다." },
+      { who: "nar", text: "loop_config.dat\n알 수 없는 형식 · 1KB\n파일을 열 수 없습니다." },
       { who: "player", text: "민영 씨. 이 파일이 뭔지 알고 있습니까." },
       { who: "minyoung", dir: "모니터를 바라보며", text: "예전에 테스트하던 거예요. 영상 재생 관련… 오래된 파일이라 안 열리는 것 같아요.", mood: "shy" },
       { who: "player", text: "영상의 주석이 이 이름을 가리키고 있습니다. 확장자는 형식 그 자체가 아닙니다." },
