@@ -507,6 +507,19 @@ img { max-width: 100%; display: block; }
   margin-top: 12px;
   align-items: center;
 }
+/* Stage 3 evidence-note fields: dark text on a light input surface for readability. */
+[data-mem-session], [data-mem-app], [data-mem-order] {
+  color: #171717 !important;
+  background: #fff !important;
+  caret-color: #171717;
+}
+[data-mem-session]::placeholder,
+[data-mem-app]::placeholder,
+[data-mem-order]::placeholder {
+  color: #777 !important;
+  opacity: 1;
+}
+
 .field input {
   background: #0c0e13;
   border: 1px solid var(--line);
