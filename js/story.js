@@ -12,11 +12,11 @@ window.STORY = {
     dorm: "background/밤샘커피를 마시는 누군가의 집.jpeg"
   },
   CAST: {
-    hyejin: { name: "혜진", color: "#ff8aa3", img: "character/혜진.jpeg", mode: "studio", role: "코인 차트에서 눈을 떼지 못하는 학부연구생" },
-    hyeseon: { name: "혜선", color: "#c9b6ff", img: "character/혜선.jpeg", mode: "illust", role: "혼자 있는 시간을 아끼는 학부연구생" },
-    solmi: { name: "솔미", color: "#9eb6ff", img: "character/솔미.jpeg", mode: "studio", role: "연구실 NAS를 맡은 학부연구생" },
-    jihee: { name: "지희", color: "#ffc56d", img: "character/지희.jpeg", mode: "illust", role: "학생회와 밴드부를 오가는 학부연구생" },
-    minyoung: { name: "민영", color: "#f0b3c8", img: "character/민영.jpeg", mode: "illust", role: "방에서 드라마를 반복해 보는 학부연구생" },
+    hyejin: { name: "혜진", color: "#ff8aa3", img: "character/혜진.png", mode: "studio", role: "코인 차트에서 눈을 떼지 못하는 학부연구생" },
+    hyeseon: { name: "혜선", color: "#c9b6ff", img: "character/혜선.png", mode: "studio", role: "혼자 있는 시간을 아끼는 학부연구생" },
+    solmi: { name: "솔미", color: "#9eb6ff", img: "character/솔미.png", mode: "studio", role: "연구실 NAS를 맡은 학부연구생" },
+    jihee: { name: "지희", color: "#ffc56d", img: "character/지희.png", mode: "studio", role: "학생회와 밴드부를 오가는 학부연구생" },
+    minyoung: { name: "민영", color: "#f0b3c8", img: "character/민영.png", mode: "studio", role: "방에서 드라마를 반복해 보는 학부연구생" },
     prof: { name: "교수", color: "#e6d3b0" },
     assist: { name: "조교", color: "#b7c4ce" },
     player: { name: "나", color: "#8fd0c4" },
