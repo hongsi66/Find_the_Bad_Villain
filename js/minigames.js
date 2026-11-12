@@ -125,7 +125,7 @@
   function stego(wrap, api) {
     const ui = mount(wrap, "venom.jpg", "사진 한 장", api);
     ui.slot.innerHTML =
-      '<div class="polaroid"><div class="art"></div><span>venom.jpg</span></div>' +
+      '<div class="polaroid"><img class="art" src="assets/venom.jpg" alt="venom.jpg"><span>venom.jpg</span></div>' +
       '<p class="hint" style="text-align:center">JPEG · 2.8MB</p>' +
       '<div class="tools" style="justify-content:center">' +
       '<button type="button" class="tiny" data-v="zoom">이미지 확대</button>' +
@@ -136,7 +136,7 @@
       btn.onclick = () => {
         const v = btn.dataset.v;
         if (v === "zoom") {
-          view.innerHTML = "<p>픽셀을 확대해도 그림 자체는 평범하다. 취향이 특별할 뿐, 화면에 적힌 시각은 없다.</p>";
+          view.innerHTML = '<img class="zoom-shot" src="assets/venom.jpg" alt="확대한 venom.jpg"><p>픽셀을 확대해도 그림 자체는 평범하다. 취향이 특별할 뿐, 화면에 적힌 시각은 없다.</p>';
           ui.say("보이는 면에는 장소가 없다.");
         } else if (v === "exif") {
           view.innerHTML = '<table class="meta"><tr><td>DateTimeOriginal</td><td>2026-10-30 23:11:40</td></tr><tr><td>GPS</td><td>없음</td></tr><tr><td>Software</td><td>없음</td></tr></table>';

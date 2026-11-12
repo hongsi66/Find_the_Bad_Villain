@@ -12,6 +12,7 @@
   let state;
   let typer = 0;
   let cutouts = {};
+  let history = [];
 
   function fresh() {
     return {
@@ -183,19 +184,22 @@
     const pendingGame = !state.react && line.game && !state.solved[solveKey()];
     const choices = (!state.react && line.choices) ? line.choices : null;
     const name = cast.name || "";
-    const klass = "dialogue" + (who === "thought" ? " thought" : "") + (who === "nar" ? " nar" : "");
+    const compact = !!(choices || pendingGame) && !line.text;
+    const klass = "dialogue" + (who === "thought" ? " thought" : "") + (who === "nar" ? " nar" : "") + (compact ? " compact" : "");
     const stage = document.getElementById("stage");
     stage.innerHTML =
       portrait + group +
       '<section class="' + klass + '" data-act="advance">' +
       (name ? '<div class="who"><i style="background:' + cast.color + '"></i>' + name + "</div>" : "") +
-      '<div class="dir">' + (line.dir || "") + "</div>" +
-      '<p class="text"></p>' +
+      (compact ? "" : '<div class="dir">' + (line.dir || "") + "</div>") +
+      (compact ? "" : '<p class="text"></p>') +
       (choices ? '<div class="choices">' + choices.map((c, i) => '<button type="button" class="choice" data-act="choice" data-i="' + i + '">' + (i + 1) + ". " + c.t + "</button>").join("") + "</div>" : "") +
       (pendingGame ? '<div class="choices"><button type="button" class="primary" data-act="game" data-game="' + line.game + '">' + (line.gameLabel || "파일을 연다") + "</button></div>" : "") +
+      (history.length ? '<button type="button" class="cue back" data-act="back">BACK</button>' : "") +
       (!choices && !pendingGame ? '<div class="cue">CLICK</div>' : "") +
       "</section>";
-    typeInto(stage.querySelector(".text"), line.text || "");
+    const textEl = stage.querySelector(".text");
+    if (textEl) typeInto(textEl, line.text || "");
     renderTop();
   }
 
@@ -385,7 +389,25 @@
     renderTitle();
   }
 
+  function remember() {
+    const snap = JSON.parse(JSON.stringify(state));
+    delete snap.typing;
+    history.push(snap);
+    if (history.length > 80) history.shift();
+  }
+
+  function rewind() {
+    if (state.phase !== "vn" || !history.length) return;
+    clearInterval(typer);
+    closeKit();
+    state = history.pop();
+    state.typing = false;
+    render();
+    persist();
+  }
+
   function startScene(id) {
+    history = [];
     state.phase = "vn";
     state.sceneId = id;
     state.line = 0;
@@ -448,6 +470,7 @@
     if (state.phase !== "vn") return;
     if (state.typing) { finishType(); return; }
     if (state.react) {
+      remember();
       state.react = null;
       state.line += 1;
       skip();
@@ -460,6 +483,7 @@
     if (!line) return onSceneEnd();
     if (line.choices) return;
     if (line.game && !state.solved[solveKey()]) return;
+    remember();
     state.line += 1;
     skip();
     if (!current()) return onSceneEnd();
@@ -472,6 +496,7 @@
     if (!line || !line.choices) return;
     const c = line.choices[i];
     if (!c) return;
+    remember();
     const focus = scene().focus;
     if (focus && typeof c.aff === "number") state.aff[focus] = clamp((state.aff[focus] || 0) + c.aff, 0, 8);
     if (c.flag) state.flags[c.flag] = true;
@@ -536,6 +561,7 @@
     fn(wrap, {
       close: closeKit,
       clear: () => {
+        remember();
         state.solved[solveKey()] = true;
         payoff(game);
         closeKit();
@@ -621,6 +647,7 @@
     try {
       const data = JSON.parse(localStorage.getItem(SAVE));
       if (!data || !data.aff) return newGame();
+      history = [];
       state = data;
       if (state.phase === "vn" && state.sceneId && window.STORY.SCENES[state.sceneId]) {
         skip();
@@ -640,6 +667,7 @@
 
   function resetSave() {
     localStorage.removeItem(SAVE);
+    history = [];
     state = fresh();
     closeNote();
     closeKit();
@@ -672,6 +700,7 @@
       renderFinale();
     } else if (act === "ask") confirmAccuse(actEl.dataset.id);
     else if (act === "accuse") accuse(actEl.dataset.id);
+    else if (act === "back") rewind();
     else if (act === "hub-back") goHub();
     else if (act === "title") { state.phase = "title"; closeNote(); render(); }
     else if (act === "reset") {
