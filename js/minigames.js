@@ -167,57 +167,190 @@
   }
 
   function memory(wrap, api) {
-    const ui = mount(wrap, "memdump_strings.txt", "메모리에 남은 것", api);
-    const tabs = {
-      proc: "22:20–23:50   chrome, kakaotalk\n23:14          문서 편집 프로세스 없음\n23:14          ssh 프로세스 없음\n23:14          paper_final 문자열, 편집 중인 핸들 없음",
-      net: "22:15–22:40   lab-nas.univ.example:22   CLOSED\n23:14          lab-nas 로 향하는 소켓 없음\n22:20–23:50   home-router.local         ESTABLISHED\n\n공유기 이름은 그 PC가 붙은 네트워크다.\n사람 위치와 항상 같지는 않다.",
-      str: "23:13  typed   치킨 아직이야? 초인종 누르지 마\n23:13  order   #7731\n23:22  typed   문 앞에 뒀어? 응, 확인했어\n\n이 문장들은 키보드 입력 버퍼에 남아 있다."
-    };
-    const seen = { proc: false, net: false, str: false };
+    const ui = mount(wrap, "mem.raw", "사라지지 않은 기록", api);
+
+    // 수업에서 배운 Hex/문자 디코딩/문자열 검색을 재현한 교육용 합성 메모리 이미지.
+    // 실제 RAM을 수집한 덤프는 아니다.
+    const records = [
+      "MEMORY IMAGE // SOLMI-PC // 2026-10-30",
+      "[22:15:03] process: ssh.exe connected to lab-nas.univ.example",
+      "[22:39:58] transfer status: paper_final_v7.docx upload complete",
+      "[22:40:18] ssh session closed: lab-nas.univ.example",
+      "[22:51:09] browser tab: lecture review - network security",
+      "[23:08:44] browser cache: paper_final_v7.docx (previously viewed filename)",
+      "[23:02:14] process: FoodApp.exe started",
+      "[23:05:41] FoodApp request: delivery status confirmed",
+      "[23:13:52] memo input: 치킨 아직 안 왔냐고 진짜",
+      "[23:14:07] memo input: 초인종 누르면 알려줘",
+      "[23:14:11] active_window=FoodApp.exe",
+      "[23:14:12] order_id=7731&status=confirmed",
+      "[23:22:36] memo input: 문 앞에 뒀다고? 확인했어",
+      "[23:24:02] delivery notification: delivered",
+      "[23:50:00] home-router.local connection active",
+      "END OF CAPTURE"
+    ];
+    const textData = records.join("\r\n") + "\r\n";
+    const bytes = [];
+    // UTF-16LE 문자열을 바이트로 저장하고, 구간 사이에 비문자 바이트를 섞어 덤프 형태를 재현.
+    const header = [0x4D,0x45,0x4D,0x00,0x01,0x00,0x10,0x00,0xA7,0x3C,0x00,0x00];
+    bytes.push(...header);
+    for (let i = 0; i < textData.length; i++) {
+      const c = textData.charCodeAt(i);
+      bytes.push(c & 255, (c >> 8) & 255);
+      if (i > 0 && i % 73 === 0) bytes.push(0x00, 0xFF, 0x2A, 0x10);
+    }
+    function toHex(n) { return n.toString(16).toUpperCase().padStart(2, "0"); }
+    function escapeHTML(value) {
+      return String(value).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+    function decodeBytes(slice, mode) {
+      if (mode === "ascii") return slice.map(b => b >= 32 && b <= 126 ? String.fromCharCode(b) : "·").join("");
+      let out = "";
+      for (let i = 0; i + 1 < slice.length; i += 2) {
+        const code = slice[i] | (slice[i + 1] << 8);
+        out += code >= 32 && code !== 0xFFFD ? String.fromCharCode(code) : "·";
+      }
+      return out;
+    }
+
     ui.slot.innerHTML =
-      '<div class="tabs">' +
-      '<button type="button" class="tiny" data-t="proc">프로세스</button>' +
-      '<button type="button" class="tiny" data-t="net">네트워크</button>' +
-      '<button type="button" class="tiny" data-t="str">문자열</button></div>' +
-      '<div class="view"><p class="mono-block" data-body>세 탭을 모두 연 뒤에 질문이 열린다.</p></div><div data-q></div>';
-    const body = ui.slot.querySelector("[data-body]");
-    function maybeAsk() {
-      if (!seen.proc || !seen.net || !seen.str) return;
-      if (ui.slot.querySelector("[data-q]").childElementCount) return;
-      ui.slot.querySelector("[data-q]").innerHTML =
-        "<p>23:14에 이 PC에서 확인되는 것은.</p><div class=\"q\">" +
-        '<button type="button" class="choice" data-a="ssh">NAS에 SSH로 접속 중이었다</button>' +
-        '<button type="button" class="choice" data-a="chat">집에서 배달을 기다리며 채팅을 치고 있었다</button>' +
-        '<button type="button" class="choice" data-a="edit">연구실에서 논문을 고치고 있었다</button></div>';
-      ui.slot.querySelectorAll("[data-a]").forEach((b) => {
-        b.onclick = () => {
-          if (b.dataset.a === "ssh") ui.say("SSH는 22:40에 닫혔다. 23:14의 소켓 목록에 NAS가 없다.", "bad");
-          else if (b.dataset.a === "edit") ui.say("그 시각의 프로세스에는 논문 편집기가 없다.", "bad");
-          else askNuance();
-        };
-      });
+      '<div class="memory-lab" style="display:grid;gap:12px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">' +
+          '<div><b style="font-family:var(--mono)">mem.raw</b><div class="hint">사건 관련 메모리 이미지 · 분석용 사본</div></div>' +
+          '<span class="tiny on" style="pointer-events:none">READ ONLY</span>' +
+        '</div>' +
+        '<div class="tools" style="align-items:center;flex-wrap:wrap">' +
+          '<label class="hint" for="mem-encoding">문자 집합</label>' +
+          '<select id="mem-encoding" class="tiny" style="background:var(--panel);color:var(--ink);border:1px solid var(--line);padding:7px 10px"><option value="unicode">Unicode (UTF-16LE)</option><option value="ascii">Text / ASCII</option></select>' +
+          '<button type="button" class="tiny" data-hx-search>문자열 검색 (Ctrl+F)</button>' +
+          '<span class="hint" data-mem-count>총 ' + bytes.length + ' bytes</span>' +
+        '</div>' +
+        '<div class="field" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+          '<input data-mem-query placeholder="검색할 문자열 입력" aria-label="검색할 문자열" style="flex:1;min-width:150px" />' +
+          '<button type="button" class="primary" data-mem-find>찾기</button>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+          '<button type="button" class="tiny" data-mem-prev disabled>이전 결과</button>' +
+          '<button type="button" class="tiny" data-mem-next disabled>다음 결과</button>' +
+          '<span class="hint" data-mem-status>문자열을 검색해 기록을 찾아보자. 검색 결과 주변의 바이트도 함께 확인할 수 있다.</span>' +
+        '</div>' +
+        '<div class="view" style="padding:0;overflow:auto;max-height:360px">' +
+          '<div style="display:grid;grid-template-columns:82px minmax(250px,1fr) minmax(180px,1fr);gap:8px;padding:9px 10px;background:var(--panel);font-size:11px;color:var(--muted);font-family:var(--mono);position:sticky;top:0;z-index:1">' +
+            '<b>Offset</b><b>Hexadecimal</b><b>Decoded text</b></div>' +
+          '<div data-mem-rows style="font:11px/1.65 var(--mono);min-width:560px"></div>' +
+        '</div>' +
+        '<section style="border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:8px">' +
+          '<b>증거 분석 노트</b><div class="hint">검색한 기록을 바탕으로 아래 항목을 판단하라. 파일명 하나가 보인다는 사실만으로 파일을 수정하거나 삭제했다고 단정할 수는 없다.</div>' +
+          '<label class="hint" for="mem-session">① NAS SSH 세션이 종료된 시각 (HH:MM)</label>' +
+          '<input id="mem-session" data-mem-session placeholder="종료 시각을 HH:MM 형식으로 입력" />' +
+          '<label class="hint" for="mem-app">② 사건 시각 23:14에 활성화된 프로그램</label>' +
+          '<input id="mem-app" data-mem-app placeholder="프로그램 이름" />' +
+          '<label class="hint" for="mem-order">③ 배달 주문번호</label>' +
+          '<input id="mem-order" data-mem-order inputmode="numeric" maxlength="4" placeholder="네 자리 주문번호" />' +
+          '<label class="hint" for="mem-cache">④ 브라우저 캐시에 파일명이 남아 있다는 사실만으로 삭제 행위를 입증할 수 있는가?</label>' +
+          '<select id="mem-cache" data-mem-cache><option value="">선택하라</option><option value="yes">그렇다</option><option value="no">아니다</option></select>' +
+          '<button type="button" class="primary" data-mem-submit>분석 결과 제출</button>' +
+        '</section>' +
+        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+          '<button type="button" class="tiny" data-hint>힌트 보기</button><span class="hint" data-hint-text>힌트는 3단계로 제공된다.</span>' +
+        '</div>' +
+      '</div>';
+
+    const rows = ui.slot.querySelector('[data-mem-rows]');
+    const query = ui.slot.querySelector('[data-mem-query]');
+    const encoding = ui.slot.querySelector('#mem-encoding');
+    const status = ui.slot.querySelector('[data-mem-status]');
+    const prev = ui.slot.querySelector('[data-mem-prev]');
+    const next = ui.slot.querySelector('[data-mem-next]');
+    let hintLevel = 0;
+    let hits = [];
+    let hitIndex = -1;
+    let searchOffset = -1;
+
+    function makeNeedle(term) {
+      const result = [];
+      if (encoding.value === 'unicode') {
+        for (let i = 0; i < term.length; i++) { const c = term.charCodeAt(i); result.push(c & 255, (c >> 8) & 255); }
+      } else {
+        for (let i = 0; i < term.length; i++) result.push(term.charCodeAt(i) & 255);
+      }
+      return result;
     }
-    function askNuance() {
-      ui.slot.querySelector("[data-q]").innerHTML =
-        "<p>집 공유기 기록만으로, 솔미가 그 방에 있었다고 단정할 수 있나.</p><div class=\"q\">" +
-        '<button type="button" class="choice" data-a="yes">있다. 네트워크가 집이면 사람도 집이다</button>' +
-        '<button type="button" class="choice" data-a="no">없다. PC의 위치일 뿐이다. 키보드 입력과 수령 답장이 사람을 보강한다</button></div>';
-      ui.slot.querySelectorAll("[data-a]").forEach((b) => {
-        b.onclick = () => {
-          if (b.dataset.a === "yes") ui.say("공유기는 그 컴퓨터가 붙은 곳이다. 사람이 의자 위에 있었는지는 입력 기록이 따로 말한다.", "bad");
-          else ui.finish("NAS 접속은 22:40에 끝났다. 23:14의 키보드는 집이었고, 그 사실도 공유기 단독이 아니라 입력 문자로 보강된다. 주문 7731. TRACE-7731.");
-        };
-      });
+    function renderRows(focusOffset) {
+      const rowSize = 16;
+      let html = '';
+      for (let offset = 0; offset < bytes.length; offset += rowSize) {
+        const slice = bytes.slice(offset, offset + rowSize);
+        const hex = slice.map(toHex).join(' ');
+        const decoded = decodeBytes(slice, encoding.value);
+        const hit = focusOffset >= offset && focusOffset < offset + rowSize;
+        html += '<div data-offset="' + offset + '" style="display:grid;grid-template-columns:82px minmax(250px,1fr) minmax(180px,1fr);gap:8px;padding:3px 10px;border-bottom:1px solid var(--line);background:' + (hit ? 'rgba(231,137,154,.18)' : 'transparent') + '">' +
+          '<span style="color:var(--muted)">' + offset.toString(16).toUpperCase().padStart(8, '0') + '</span>' +
+          '<span style="white-space:pre;color:var(--ink)">' + hex.padEnd(47, ' ') + '</span>' +
+          '<span style="white-space:pre;color:var(--ink)">' + escapeHTML(decoded) + '</span></div>';
+      }
+      rows.innerHTML = html;
+      if (focusOffset >= 0) {
+        const target = rows.querySelector('[data-offset="' + (Math.floor(focusOffset / rowSize) * rowSize) + '"]');
+        if (target) target.scrollIntoView({ block: 'nearest' });
+      }
     }
-    ui.slot.querySelectorAll("[data-t]").forEach((btn) => {
-      btn.onclick = () => {
-        ui.slot.querySelectorAll("[data-t]").forEach((b) => b.classList.remove("on"));
-        btn.classList.add("on");
-        seen[btn.dataset.t] = true;
-        body.textContent = tabs[btn.dataset.t];
-        maybeAsk();
-      };
-    });
+    function updateNav() {
+      prev.disabled = hits.length < 2 || hitIndex <= 0;
+      next.disabled = hits.length < 2 || hitIndex >= hits.length - 1;
+    }
+    function showHit(index) {
+      hitIndex = index;
+      searchOffset = hits[index];
+      status.textContent = '검색 결과 ' + (index + 1) + ' / ' + hits.length + ' · Offset 0x' + searchOffset.toString(16).toUpperCase().padStart(8, '0') + ' · 주변 데이터를 확인하라.';
+      renderRows(searchOffset);
+      updateNav();
+    }
+    function search() {
+      const term = query.value;
+      if (!term) { status.textContent = '검색어를 입력하라.'; return; }
+      const needle = makeNeedle(term);
+      hits = [];
+      outer: for (let i = 0; i <= bytes.length - needle.length; i++) {
+        for (let j = 0; j < needle.length; j++) if (bytes[i + j] !== needle[j]) continue outer;
+        hits.push(i);
+        i += Math.max(0, needle.length - 1);
+      }
+      if (!hits.length) {
+        hitIndex = -1; searchOffset = -1; status.textContent = '일치하는 문자열이 없다. 문자 집합 설정과 검색어를 확인하라.';
+        updateNav(); renderRows(-1); return;
+      }
+      showHit(0);
+    }
+    ui.slot.querySelector('[data-mem-find]').onclick = search;
+    ui.slot.querySelector('[data-hx-search]').onclick = () => { query.focus(); status.textContent = '검색어를 입력한 뒤 찾기를 누르라.'; };
+    query.addEventListener('keydown', event => { if (event.key === 'Enter') search(); });
+    ui.slot.addEventListener('keydown', event => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') { event.preventDefault(); query.focus(); } });
+    prev.onclick = () => { if (hitIndex > 0) showHit(hitIndex - 1); };
+    next.onclick = () => { if (hitIndex < hits.length - 1) showHit(hitIndex + 1); };
+    encoding.onchange = () => { renderRows(searchOffset); status.textContent = encoding.value === 'unicode' ? 'Unicode(UTF-16LE)로 표시 중이다. 검색도 다시 실행하라.' : 'ASCII 방식으로 표시 중이다. 검색도 다시 실행하라.'; hits = []; hitIndex = -1; updateNav(); };
+    ui.slot.querySelector('[data-hint]').onclick = () => {
+      hintLevel = Math.min(3, hintLevel + 1);
+      const hints = [
+        '1단계: 사건 시각 전후의 기록과 NAS 연결 종료 기록을 각각 찾아 비교하라.',
+        '2단계: 22:40, 23:14, order_id를 검색해 보라. 검색 결과가 여러 개면 이전/다음 결과도 확인하라.',
+        '3단계: Unicode(UTF-16LE)를 선택하고, 23:14의 active_window와 order_id를 확인하라. 캐시의 파일명은 삭제 증거와 동일하지 않다.'
+      ];
+      ui.slot.querySelector('[data-hint-text]').textContent = hints[hintLevel - 1];
+    };
+    ui.slot.querySelector('[data-mem-submit]').onclick = () => {
+      const session = ui.slot.querySelector('[data-mem-session]').value.trim();
+      const app = ui.slot.querySelector('[data-mem-app]').value.trim().toLowerCase();
+      const order = ui.slot.querySelector('[data-mem-order]').value.trim();
+      const cache = ui.slot.querySelector('[data-mem-cache]').value;
+      if (session === '22:40' && app === 'foodapp.exe' && order === '7731' && cache === 'no') {
+        ui.finish('증거 분석 완료. NAS SSH 세션은 22:40에 종료됐다. 사건 시각 23:14의 활성 프로그램은 FoodApp.exe이며, 주문번호 7731의 배달 요청 기록이 남아 있다. 브라우저 캐시에 paper_final_v7.docx라는 파일명이 남아 있다는 사실만으로 삭제 행위를 입증할 수는 없다. 기록을 종합하면 솔미의 알리바이는 뒷받침되지만, 이 자료만으로 실제 위치까지 단정하지는 않는다. TRACE-7731.');
+      } else {
+        ui.say('아직 증거 조합이 정확하지 않다. NAS 세션 종료 시각, 사건 시각의 활성 프로그램, 주문번호, 캐시 기록의 증명력을 다시 확인하라.', 'bad');
+      }
+    };
+    renderRows(-1);
+    ui.say('메모리 이미지가 열렸다. 단일 문자열만 찾지 말고 시간과 기록의 의미를 비교해 증거를 조합하라.');
   }
 
   function logs(wrap, api) {
