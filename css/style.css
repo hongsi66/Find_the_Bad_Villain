@@ -133,20 +133,22 @@ img { max-width: 100%; display: block; }
   mask-image: linear-gradient(180deg, #000 78%, transparent 98%);
 }
 .portrait.illust {
-  width: min(28vw, 380px);
-  height: min(50vh, 540px);
-  right: 40px;
-  bottom: 236px;
-  border-radius: 18px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  /* Legacy mode now shares the same full-size layout as studio portraits. */
+  width: min(46vw, 640px);
+  height: min(92vh, 980px);
+  right: 2vw;
+  bottom: 0;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  box-shadow: none;
 }
 .portrait.illust img {
-  object-fit: cover;
-  object-position: center 16%;
-  mask-image: none;
+  width: 100%;
   height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  mask-image: linear-gradient(180deg, #000 78%, transparent 98%);
 }
 .portrait.listen { filter: saturate(0.8) brightness(0.88); transform: translateY(8px); }
 .portrait.mood-warm { filter: saturate(1.08) brightness(1.05); }
@@ -175,7 +177,7 @@ img { max-width: 100%; display: block; }
   box-shadow: var(--shadow);
   backdrop-filter: blur(16px);
   min-height: 196px;
-  padding: 22px 28px 18px;
+  padding: 22px 28px 40px;
 }
 .dialogue .who {
   display: inline-flex;
@@ -209,6 +211,11 @@ img { max-width: 100%; display: block; }
   min-height: 3.4em;
   white-space: pre-wrap;
 }
+.dialogue.compact {
+  min-height: 0;
+}
+.dialogue.compact .who { margin-bottom: 12px; }
+.dialogue.compact .choices { margin-top: 0; }
 .dialogue.thought {
   background: rgba(28, 22, 12, 0.78);
   border-color: rgba(228, 177, 90, 0.35);
@@ -223,6 +230,14 @@ img { max-width: 100%; display: block; }
   letter-spacing: 0.2em;
   font-size: 12px;
   animation: blink 1.2s steps(2) infinite;
+}
+button.cue.back {
+  left: 22px;
+  right: auto;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  animation: none;
 }
 @keyframes blink { 50% { opacity: 0.2; } }
 .choices {
@@ -507,6 +522,19 @@ img { max-width: 100%; display: block; }
   margin-top: 12px;
   align-items: center;
 }
+/* Stage 3 evidence-note fields: dark text on a light input surface for readability. */
+[data-mem-session], [data-mem-app], [data-mem-order] {
+  color: #171717 !important;
+  background: #fff !important;
+  caret-color: #171717;
+}
+[data-mem-session]::placeholder,
+[data-mem-app]::placeholder,
+[data-mem-order]::placeholder {
+  color: #777 !important;
+  opacity: 1;
+}
+
 .field input {
   background: #0c0e13;
   border: 1px solid var(--line);
@@ -523,7 +551,7 @@ img { max-width: 100%; display: block; }
   color: #d7ecdf;
 }
 .polaroid {
-  width: 220px;
+  width: min(100%, 340px);
   margin: 0 auto;
   background: #efeae2;
   color: #221c18;
@@ -532,13 +560,22 @@ img { max-width: 100%; display: block; }
   transform: rotate(-2deg);
 }
 .polaroid .art {
-  height: 180px;
-  background:
-    radial-gradient(circle at 50% 42%, #2a2430 0 28px, transparent 29px),
-    radial-gradient(circle at 40% 40%, #fff 0 4px, transparent 5px),
-    radial-gradient(circle at 60% 40%, #fff 0 4px, transparent 5px),
-    linear-gradient(#1a1420, #3a2438);
+  display: block;
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  object-position: center 42%;
   border-radius: 2px;
+  background: #111;
+}
+.zoom-shot {
+  display: block;
+  width: 100%;
+  max-height: 168px;
+  object-fit: contain;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  background: #07080c;
 }
 .polaroid span { display: block; text-align: center; margin-top: 8px; font-family: var(--serif); font-size: 18px; }
 .hex {

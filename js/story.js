@@ -12,11 +12,12 @@ window.STORY = {
     dorm: "background/밤샘커피를 마시는 누군가의 집.jpeg"
   },
   CAST: {
-    hyejin: { name: "혜진", color: "#ff8aa3", img: "character/혜진.jpeg", mode: "studio", role: "코인 차트에서 눈을 떼지 못하는 학부연구생" },
-    hyeseon: { name: "혜선", color: "#c9b6ff", img: "character/혜선.jpeg", mode: "illust", role: "혼자 있는 시간을 아끼는 학부연구생" },
-    solmi: { name: "솔미", color: "#9eb6ff", img: "character/솔미.jpeg", mode: "studio", role: "연구실 NAS를 맡은 학부연구생" },
-    jihee: { name: "지희", color: "#ffc56d", img: "character/지희.jpeg", mode: "illust", role: "학생회와 밴드부를 오가는 학부연구생" },
-    minyoung: { name: "민영", color: "#f0b3c8", img: "character/민영.jpeg", mode: "illust", role: "방에서 드라마를 반복해 보는 학부연구생" },
+    hyejin: { name: "혜진", color: "#ff8aa3", img: "character/혜진.png", mode: "studio", role: "코인 차트에서 눈을 떼지 못하는 학부연구생" },
+    hyeseon: { name: "혜선", color: "#c9b6ff", img: "character/혜선.png", mode: "studio", role: "혼자 있는 시간을 아끼는 학부연구생" },
+    solmi: { name: "솔미", color: "#9eb6ff", img: "character/솔미.png", mode: "studio", role: "연구실 NAS를 맡은 학부연구생" },
+    jihee: { name: "지희", color: "#ffc56d", img: "character/지희.png", mode: "studio", role: "학생회와 밴드부를 오가는 학부연구생" },
+    minyoung: { name: "민영", color: "#f0b3c8", img: "character/민영.png", mode: "studio", role: "방에서 드라마를 반복해 보는 학부연구생" },
+    minyoungCry: { name: "민영", color: "#f0b3c8", img: "character/minyoung_cry.png", mode: "studio" },
     prof: { name: "교수", color: "#e6d3b0" },
     assist: { name: "조교", color: "#b7c4ce" },
     player: { name: "나", color: "#8fd0c4" },
@@ -282,40 +283,50 @@ window.STORY.SCENES = {
         { t: "늦은 답장이 마음에 걸린다고 말한다.", aff: 0, react: { who: "minyoung", dir: "담요를 끌어당기며", text: "이상하게 들리겠죠. 그래도 영상은 드릴게요. 확인하시면… 되잖아요.", mood: "down" } }
       ]},
       { who: "nar", text: "그녀가 보던 영상이라는 파일. 길이는 숨 한 번보다 짧다.", game: "meta", gameLabel: "alibi.mp4를 연다" },
-      { who: "player", text: "이 파일은 어젯밤 22:47에 만들어졌습니다. 만든 프로그램 이름은 loop_maker. 주석에는 loop_config.dat가 있습니다." },
+      { who: "player", text: "영상 정보를 잠깐 봤습니다. 예전부터 보던 파일치고는, 꽤 최근에 만들어졌네요." },
       { who: "minyoung", dir: "한참 침묵하다가", text: "…그날 저장했을 수도 있죠. 기존에 보던 걸, 잘리는 부분만.", mood: "down" },
-      { who: "player", text: "그 파일, 이 컴퓨터에 있습니까." },
-      { who: "minyoung", dir: "목소리가 작아져", text: "있어요. 꼭… 그래야 하나요.", mood: "shy" },
-      { who: "player", text: "네. 말과 파일을 같이 봐야 하니까요." },
-      { who: "minyoung", dir: "고개를 숙이며", text: "…알겠어요.", mood: "down" },
-      { who: "thought", text: "열 초짜리 반복은, 방에 사람이 있는 것처럼 들리게 할 수 있다. 그러나 삭제가 실행됐다는 기록은 아직 없다." }
+      { who: "minyoung", dir: "담요를 끌어당기며", text: "잠들 때 장면이 끊기는 게 싫어서, 반복용으로 따로 만들어 둔 거예요. 이상한가요.", mood: "shy" },
+      { who: "player", text: "아니요. 오늘은 여기까지 듣겠습니다." },
+      { who: "thought", text: "영상은 그날 밤 만들어졌다. 그러나 드라마를 틀어 두고 자는 사람은 많다. 이것만으로 그녀가 연구동에 있었다고 말할 수는 없다." },
+      { who: "thought", text: "다섯 사람의 이야기를 모두 들었다. 이제 기록을 펼쳐 놓고, 한 사람을 골라야 한다." }
     ]
   },
 
   minyoung2: {
     bg: "dorm",
-    place: "10월 31일 오후 6:00 · 기숙사",
+    place: "10월 31일 오후 7:20 · 기숙사",
     focus: "minyoung",
     lines: [
-      { who: "nar", text: "같은 방. 창밖만 더 어두워져 있다. 파일 목록은 대부분 평범한 영상과 문서다. 그중 하나가 열리지 않는다." },
+      { who: "nar", hide: true, text: "보고서에 민영의 이름을 적었다. 교수님은 한 가지만 되물었다. 영상 말고, 실행의 기록이 있느냐고." },
+      { who: "thought", hide: true, text: "영상은 방에 사람이 있는 것처럼 들리게 할 뿐이다. 영상의 주석이 가리킨 파일, loop_config.dat. 그걸 열어야 지목이 증명이 된다." },
+      { who: "nar", text: "다시 찾은 기숙사. 창밖만 더 어두워져 있다. 파일 목록은 대부분 평범한 영상과 문서다. 그중 하나가 열리지 않는다." },
       { who: "nar", text: "loop_config.dat\n알 수 없는 형식 · 1KB\n파일을 열 수 없습니다." },
       { who: "player", text: "민영 씨. 이 파일이 뭔지 알고 있습니까." },
       { who: "minyoung", dir: "모니터를 바라보며", text: "예전에 테스트하던 거예요. 영상 재생 관련… 오래된 파일이라 안 열리는 것 같아요.", mood: "shy" },
-      { who: "player", text: "영상의 주석이 이 이름을 가리키고 있습니다. 확장자는 형식 그 자체가 아닙니다." },
+      { who: "player", text: "영상의 주석이 이 이름을 가리키고 있습니다. 확장자랑 형식이 맞지 않습니다." },
       { who: "minyoung", dir: "표정이 굳어", text: "…", mood: "down" },
-      { who: "nar", text: "이름은 설정 파일인데, 도구는 형식을 모른다.", game: "hex", gameLabel: "loop_config.dat를 연다" },
-      { who: "nar", text: "방 안이 조용해진다. 민영은 화면을 보다가, 천천히 고개를 숙인다." },
-      { who: "player", text: "22:50에 영상을 반복 재생하도록 예약했습니다. 22:52에 방을 나설 계획이 적혀 있습니다." },
-      { who: "minyoung", dir: "손을 꽉 쥐며", text: "…그만 읽으시면 안 돼요?", mood: "down" },
-      { who: "player", text: "스크립트만으로는 실행이라고 말할 수 없습니다. 그래서 같이 들어 있던 감사 로그를 봤습니다." },
-      { who: "player", text: "23:10, 연구동 무선 AP. 계정은 minyoung. 23:14:02, paper_final_v7.docx 삭제. 이어서 휴지통을 비웠습니다." },
-      { who: "minyoung", dir: "고개를 숙인 채", text: "…네.", mood: "down" },
-      { who: "player", text: "지희 씨가 들은 반복 대사는, 빈 방에서 돌고 있던 그 영상이었습니다." },
-      { who: "minyoung", dir: "떨리는 목소리로", text: "교수님께서 제 이름을 빼겠다고 하셨어요. 실험 데이터가 재현되지 않는다고. 처음부터 다시 검증하겠다고.", mood: "shock" },
-      { who: "minyoung", dir: "눈물을 참으며", text: "그 논문이 제 졸업 요건이었어요. 없으면 졸업을 못 할 수도 있었어요. 다른 사람들도 처음부터 다시 할 줄 알았어요.", mood: "down" },
-      { who: "player", text: "그건 혼자 결정할 일이 아니었습니다." },
-      { who: "minyoung", dir: "고개를 숙인 채", text: "알아요. 그런데 그때는 너무 무서웠어요. 죄송해요. 정말 죄송해요.", mood: "down" },
-      { who: "thought", text: "의도는 주석에 있었고, 실행은 로그에 있었다. 다정하게 들은 이야기와, 계정 이름은 같은 사람을 가리킨다." }
+      { who: "nar", text: "이름은 설정 파일인데, 어떤 프로그램으로도 열리지 않는다.", game: "hex", gameLabel: "loop_config.dat를 연다" },
+      { sprite: "minyoungCry", who: "nar", text: "방 안이 조용해진다. 민영은 화면을 보다가, 천천히 고개를 숙인다." },
+      { who: "player", hide: true, text: "22:50에 영상을 반복 재생하도록 예약했습니다. 22:52에 방을 나설 계획이 적혀 있습니다." },
+      { sprite: "minyoungCry", who: "minyoung", dir: "손을 꽉 쥐며", text: "…그만 읽으시면 안 돼요?", mood: "down" },
+      { who: "player", hide: true, text: "스크립트만으로는 실행이라고 말할 수 없습니다. 그래서 같이 들어 있던 감사 로그를 봤습니다." },
+      { who: "player", hide: true, text: "23:10, 연구동 무선 AP. 계정은 minyoung. 23:14:02, paper_final_v7.docx 삭제. 이어서 휴지통을 비웠습니다." },
+      { sprite: "minyoungCry", who: "minyoung", dir: "고개를 숙인 채", text: "…네.", mood: "down" },
+      { sprite: "minyoungCry", who: "minyoung", dir: "떨리는 목소리로", text: "교수님께서 제 이름을 빼겠다고 하셨어요. 실험 데이터가 재현되지 않는다고. 처음부터 다시 검증하겠다고.", mood: "shock" },
+      { sprite: "minyoungCry", who: "minyoung", dir: "눈물을 참으며", text: "그 논문이 제 졸업 요건이었어요. 없으면 졸업을 못 할 수도 있었어요. 다른 사람들도 처음부터 다시 할 줄 알았어요.", mood: "down" },
+      { who: "player", hide: true, text: "그건 혼자 결정할 일이 아니었습니다." },
+      { sprite: "minyoungCry", who: "minyoung", dir: "고개를 숙인 채", text: "알아요. 그런데 그때는 너무 무서웠어요. 죄송해요. 정말 죄송해요.", mood: "down" },
+      { sprite: "minyoungCry", who: "thought", text: "스크립트에는 삭제 계획이, 감사 로그에는 실제로 지운 기록이 남아 있었다. 조용하고 순해 보이던 민영이, 기록 속에서는 범인이었다." }
+    ]
+  },
+
+  minyoungPre: {
+    bg: "dorm",
+    place: "기숙사",
+    focus: "minyoung",
+    lines: [
+      { who: "minyoung", dir: "문틈으로 얼굴만 내밀고", text: "또 오셨네요. 드라마 보던 중이었어요. 아까 드린 게 전부예요.", mood: "shy" },
+      { who: "nar", text: "방 안에서 같은 장면이 다시 시작된다. 지금 더 물을 것은 없다." }
     ]
   },
 
@@ -332,7 +343,7 @@ window.STORY.SCENES = {
 
   ending: {
     bg: "lab",
-    place: "10월 31일 오후 7:00 · 정보보호 연구실",
+    place: "10월 31일 오후 8:00 · 정보보호 연구실",
     focus: null,
     lines: [
       { who: "player", hide: true, text: "범인은 민영 씨입니다." },
@@ -340,12 +351,12 @@ window.STORY.SCENES = {
       { who: "player", hide: true, text: "22:47에 알리바이용 영상을 만들었고, 22:50에 반복 재생을 예약했습니다. 지희 씨가 들은 대사는 빈 방의 소리였습니다." },
       { who: "player", hide: true, text: "그리고 23:14. 연구동에서 본인 계정으로 최종본을 지우고, 휴지통까지 비웠습니다. 계획의 시각과 감사 로그가 같습니다." },
       { who: "prof", hide: true, dir: "안경을 벗으며", text: "…그랬군." },
-      { who: "minyoung", dir: "눈물을 흘리며", text: "죄송합니다. 정말 죄송합니다.", mood: "down" },
+      { who: "minyoung", sprite: "minyoungCry", dir: "눈물을 흘리며", text: "죄송합니다. 정말 죄송합니다.", mood: "down" },
       { who: "hyejin", sprite: "hyejin", dir: "입을 벌린 채", text: "뭐? 민영이가?", mood: "shock" },
       { who: "hyeseon", sprite: "hyeseon", dir: "믿기지 않는다는 표정으로", text: "와. 전혀 몰랐네.", mood: "shock" },
       { who: "solmi", sprite: "solmi", dir: "팔짱을 풀며", text: "결국 권한의 이름이 아니라, 그 시각에 로그인된 계정이었군요.", mood: "cold" },
       { who: "jihee", sprite: "jihee", dir: "민영을 바라보며", text: "민영아… 왜 혼자 그렇게까지 했어.", mood: "down" },
-      { who: "minyoung", dir: "고개를 숙이며", text: "미안해. 정말 미안해.", mood: "down" },
+      { who: "minyoung", sprite: "minyoungCry", dir: "고개를 숙이며", text: "미안해. 정말 미안해.", mood: "down" },
       { who: "prof", hide: true, dir: "깊게 한숨을 쉬며", text: "논문이 돌아올지는 모르겠다. 사실관계부터 확인하고, 연구실이 대응하겠다." },
       { who: "player", hide: true, if: "aff:minyoung>=3", text: "오후에 나눈 이야기는 거짓이 아닌 부분도 있었다. 그래도 계정과 시각은 그 이야기를 넘어간다." },
       { who: "player", hide: true, text: "디지털 흔적은 삭제 뒤에도 남습니다. 지웠다고 해서 모든 것이 사라지는 것은 아니니까요." },
