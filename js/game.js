@@ -12,6 +12,7 @@
   let state;
   let typer = 0;
   let cutouts = {};
+  let history = [];
 
   function fresh() {
     return {
@@ -183,19 +184,22 @@
     const pendingGame = !state.react && line.game && !state.solved[solveKey()];
     const choices = (!state.react && line.choices) ? line.choices : null;
     const name = cast.name || "";
-    const klass = "dialogue" + (who === "thought" ? " thought" : "") + (who === "nar" ? " nar" : "");
+    const compact = !!(choices || pendingGame) && !line.text;
+    const klass = "dialogue" + (who === "thought" ? " thought" : "") + (who === "nar" ? " nar" : "") + (compact ? " compact" : "");
     const stage = document.getElementById("stage");
     stage.innerHTML =
       portrait + group +
       '<section class="' + klass + '" data-act="advance">' +
       (name ? '<div class="who"><i style="background:' + cast.color + '"></i>' + name + "</div>" : "") +
-      '<div class="dir">' + (line.dir || "") + "</div>" +
-      '<p class="text"></p>' +
+      (compact ? "" : '<div class="dir">' + (line.dir || "") + "</div>") +
+      (compact ? "" : '<p class="text"></p>') +
       (choices ? '<div class="choices">' + choices.map((c, i) => '<button type="button" class="choice" data-act="choice" data-i="' + i + '">' + (i + 1) + ". " + c.t + "</button>").join("") + "</div>" : "") +
       (pendingGame ? '<div class="choices"><button type="button" class="primary" data-act="game" data-game="' + line.game + '">' + (line.gameLabel || "파일을 연다") + "</button></div>" : "") +
+      (history.length ? '<button type="button" class="cue back" data-act="back">BACK</button>' : "") +
       (!choices && !pendingGame ? '<div class="cue">CLICK</div>' : "") +
       "</section>";
-    typeInto(stage.querySelector(".text"), line.text || "");
+    const textEl = stage.querySelector(".text");
+    if (textEl) typeInto(textEl, line.text || "");
     renderTop();
   }
 
@@ -205,8 +209,7 @@
     if (!state.cleared.solmi) return "연구실의 솔미. 수첩 앞면은 이미 그녀를 가리키고 있다.";
     if (!state.cleared.jihee) return "학생회관의 지희. 모두에게 다정한 사람의 어젯밤.";
     if (!state.cleared.minyoung) return "반복되던 대사가 남았다. 기숙사의 민영을 만나러 간다.";
-    if (!state.cleared.deep) return "민영의 컴퓨터에 열리지 않는 파일이 남아 있다.";
-    if (!state.flags.reported) return "기록을 모아 연구실에 보고한다.";
+    if (!state.flags.reported) return "기록을 모아 연구실에 보고한다. 한 사람을 지목한다.";
     return "사건은 닫혔다. 수첩은 아직 펼쳐 볼 수 있다.";
   }
 
@@ -214,7 +217,6 @@
     if (id === "minyoung") {
       if (!state.flags.bridgePlayed) return "locked";
       if (!state.cleared.minyoung) return "go";
-      if (!state.cleared.deep) return "go2";
       return "re";
     }
     if (!state.cleared[id]) {
@@ -243,7 +245,7 @@
         '<span class="meta">' + PLACES[id] + "<br>" + c.role + '</span>' +
         '<span class="tag">' + tag + "</span></span></button>";
     }).join("");
-    const finaleBtn = state.cleared.deep && !state.flags.reported
+    const finaleBtn = state.cleared.minyoung && !state.flags.reported
       ? '<button type="button" class="primary" data-act="finale">연구실에 보고한다</button>'
       : "";
     document.getElementById("stage").innerHTML =
@@ -385,7 +387,25 @@
     renderTitle();
   }
 
+  function remember() {
+    const snap = JSON.parse(JSON.stringify(state));
+    delete snap.typing;
+    history.push(snap);
+    if (history.length > 80) history.shift();
+  }
+
+  function rewind() {
+    if (state.phase !== "vn" || !history.length) return;
+    clearInterval(typer);
+    closeKit();
+    state = history.pop();
+    state.typing = false;
+    render();
+    persist();
+  }
+
   function startScene(id) {
+    history = [];
     state.phase = "vn";
     state.sceneId = id;
     state.line = 0;
@@ -418,7 +438,7 @@
     if (id === "minyoung2") {
       state.cleared.deep = true;
       state.flipped.minyoung = false;
-      return goHub();
+      return startScene("ending");
     }
     if (id === "ending") {
       state.flags.reported = true;
@@ -448,6 +468,7 @@
     if (state.phase !== "vn") return;
     if (state.typing) { finishType(); return; }
     if (state.react) {
+      remember();
       state.react = null;
       state.line += 1;
       skip();
@@ -460,6 +481,7 @@
     if (!line) return onSceneEnd();
     if (line.choices) return;
     if (line.game && !state.solved[solveKey()]) return;
+    remember();
     state.line += 1;
     skip();
     if (!current()) return onSceneEnd();
@@ -472,6 +494,7 @@
     if (!line || !line.choices) return;
     const c = line.choices[i];
     if (!c) return;
+    remember();
     const focus = scene().focus;
     if (focus && typeof c.aff === "number") state.aff[focus] = clamp((state.aff[focus] || 0) + c.aff, 0, 8);
     if (c.flag) state.flags[c.flag] = true;
@@ -536,6 +559,7 @@
     fn(wrap, {
       close: closeKit,
       clear: () => {
+        remember();
         state.solved[solveKey()] = true;
         payoff(game);
         closeKit();
@@ -578,7 +602,7 @@
     if (st === "locked") return;
     if (id === "minyoung") {
       if (st === "go") return startScene("minyoung");
-      if (st === "go2") return startScene("minyoung2");
+      if (!state.cleared.deep) return startScene("minyoungPre");
       return startScene("minyoungR");
     }
     if (st === "re") return startScene(id + "R");
@@ -601,7 +625,7 @@
   function accuse(id) {
     closeNote();
     if (id === "minyoung") {
-      startScene("ending");
+      startScene("minyoung2");
       return;
     }
     const box = document.getElementById("rebuttal");
@@ -621,6 +645,7 @@
     try {
       const data = JSON.parse(localStorage.getItem(SAVE));
       if (!data || !data.aff) return newGame();
+      history = [];
       state = data;
       if (state.phase === "vn" && state.sceneId && window.STORY.SCENES[state.sceneId]) {
         skip();
@@ -640,6 +665,7 @@
 
   function resetSave() {
     localStorage.removeItem(SAVE);
+    history = [];
     state = fresh();
     closeNote();
     closeKit();
@@ -672,6 +698,7 @@
       renderFinale();
     } else if (act === "ask") confirmAccuse(actEl.dataset.id);
     else if (act === "accuse") accuse(actEl.dataset.id);
+    else if (act === "back") rewind();
     else if (act === "hub-back") goHub();
     else if (act === "title") { state.phase = "title"; closeNote(); render(); }
     else if (act === "reset") {
