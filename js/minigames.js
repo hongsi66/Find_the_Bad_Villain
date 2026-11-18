@@ -41,22 +41,22 @@
     };
   }
 
-  function digits() {
-    const maps = {
+  function spectrogram(wrap, api) {
+    const ui = mount(wrap, "scream.wav", "녹음 속 소리", api);
+    const wave = '<svg class="wave" viewBox="0 0 600 120"><path d="M0 60 Q 20 60 30 58 T 80 55 T 140 20 T 200 90 T 260 10 T 320 100 T 380 30 T 460 70 T 560 60 T 600 60" fill="none" stroke="#e7899a" stroke-width="2"/></svg>';
+    const glyphs = {
       "2": ["111", "001", "111", "100", "111"],
       "3": ["111", "001", "111", "001", "111"],
       "1": ["010", "110", "010", "010", "111"],
       "4": ["101", "101", "111", "001", "001"]
     };
-    return ["2", "3", "1", "4"].map((d) => {
-      const cells = maps[d].join("").split("").map((c) => '<b class="' + (c === "1" ? "on" : "") + '"></b>').join("");
-      return '<div class="digit" aria-label="' + d + '">' + cells + "</div>";
-    }).join("");
-  }
-
-  function spectrogram(wrap, api) {
-    const ui = mount(wrap, "scream.wav", "녹음 속 소리", api);
-    const wave = '<svg class="wave" viewBox="0 0 600 120"><path d="M0 60 Q 20 60 30 58 T 80 55 T 140 20 T 200 90 T 260 10 T 320 100 T 380 30 T 460 70 T 560 60 T 600 60" fill="none" stroke="#e7899a" stroke-width="2"/></svg>';
+    const carriers = [
+      { digit: "2", hz: 17200 },
+      { digit: "3", hz: 18450 },
+      { digit: "1", hz: 15850 },
+      { digit: "4", hz: 19300 }
+    ];
+    const defaults = [6400, 9100, 4800, 11200];
     ui.slot.innerHTML =
       '<div class="tools">' +
       '<button type="button" class="tiny" data-v="wave">파형</button>' +
@@ -64,16 +64,123 @@
       '<button type="button" class="tiny" data-v="spec">스펙트로그램</button>' +
       "</div><div class=\"view\" data-view></div>";
     const view = ui.slot.querySelector("[data-view]");
-    function specGrid() {
-      let html = '<div class="spec">';
-      for (let c = 0; c < 48; c++) {
-        const env = Math.sin((c / 48) * Math.PI);
-        const h = 18 + env * 70 + ((c * 17) % 11);
-        html += '<i style="height:' + h + 'px;opacity:' + (0.35 + env * 0.6) + '"></i>';
+
+    function openTuner() {
+      view.innerHTML =
+        '<canvas class="spec-canvas" data-spec width="720" height="250"></canvas>' +
+        '<div class="tune-list" data-tunes></div>' +
+        '<div class="field" data-readout hidden><label>읽힌 숫자</label><input data-code maxlength="5" inputmode="numeric" placeholder="네 자리"><button type="button" class="tiny" data-read>확인</button></div>' +
+        '<div class="tools"><button type="button" class="tiny" data-hint>파장 힌트</button><span class="hint" data-hint-text>각 열의 파장을 천천히 훑는다. 맞아 들어가면 그 열만 밝아진다.</span></div>';
+      const canvas = view.querySelector("[data-spec]");
+      const tunes = view.querySelector("[data-tunes]");
+      tunes.innerHTML = carriers.map((c, i) =>
+        '<label class="tune"><span>파장 ' + (i + 1) + '</span>' +
+        '<input type="range" min="3000" max="22000" step="50" value="' + defaults[i] + '" data-i="' + i + '" aria-label="파장 ' + (i + 1) + '">' +
+        '<b data-hz="' + i + '"></b><i data-meter="' + i + '"></i></label>'
+      ).join("");
+      const ctx = canvas.getContext("2d");
+      const sliders = [...tunes.querySelectorAll("input")];
+      let hintLevel = 0;
+      let revealed = false;
+
+      function signalAt(i) {
+        const delta = Math.abs(Number(sliders[i].value) - carriers[i].hz);
+        return Math.max(0, 1 - delta / 1400);
       }
-      html += "</div>";
-      return html;
+      function draw() {
+        const dpr = 1;
+        const w = canvas.clientWidth || 720;
+        const h = 250;
+        const pw = Math.round(w * dpr);
+        const ph = Math.round(h * dpr);
+        canvas.width = pw;
+        canvas.height = ph;
+        const image = ctx.createImageData(pw, ph);
+        const data = image.data;
+        const viewBand = 1600;
+        const colW = pw / carriers.length;
+        const sigs = carriers.map((_, i) => signalAt(i));
+        const centers = sliders.map((slider) => Number(slider.value));
+        for (let y = 0; y < ph; y++) {
+          const rel = 0.5 - y / ph;
+          for (let x = 0; x < pw; x++) {
+            const col = Math.min(carriers.length - 1, Math.floor(x / colW));
+            const hz = centers[col] + rel * viewBand;
+            let n = (x * 374761393 + y * 668265263) >>> 0;
+            n = Math.imul(n ^ (n >>> 13), 1274126177) >>> 0;
+            let bright = (n / 4294967295) * 16;
+            if (hz < 7000) bright += (1 - hz / 7000) * 70;
+            const glyph = glyphs[carriers[col].digit];
+            const localX = (x % colW) / colW;
+            const gx = Math.floor((localX - 0.16) / (0.68 / 3));
+            const cellHz = 250;
+            const top = carriers[col].hz + cellHz * 2.5;
+            const gy = Math.floor((top - hz) / cellHz);
+            if (gx >= 0 && gx < 3 && gy >= 0 && gy < 5 && glyph[gy][gx] === "1") bright += 40 + sigs[col] * sigs[col] * 200;
+            if (Math.abs(x - col * colW) < 1) bright = 8;
+            const g = Math.max(0, Math.min(255, bright));
+            const p = (y * pw + x) * 4;
+            data[p] = g * 0.42;
+            data[p + 1] = g;
+            data[p + 2] = g * 0.7;
+            data[p + 3] = 255;
+          }
+        }
+        ctx.putImageData(image, 0, 0);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.fillStyle = "rgba(215, 236, 223, 0.72)";
+        ctx.font = "11px IBM Plex Mono, monospace";
+        ctx.fillText("고른 파장 주변만 확대", 8, 16);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        sliders.forEach((slider, i) => {
+          const hz = Number(slider.value);
+          const mm = (343 / hz * 1000).toFixed(1);
+          tunes.querySelector('[data-hz="' + i + '"]').textContent = (hz / 1000).toFixed(2) + " kHz · " + mm + " mm";
+          const meter = tunes.querySelector('[data-meter="' + i + '"]');
+          const pct = Math.round(signalAt(i) * 100);
+          meter.style.setProperty("--p", pct + "%");
+          meter.classList.toggle("hot", pct > 85);
+        });
+        const ready = sliders.every((_, i) => signalAt(i) > 0.86);
+        const box = view.querySelector("[data-readout]");
+        if (ready && !revealed) {
+          revealed = true;
+          box.hidden = false;
+          ui.say("네 열이 맞았다. 들리지 않는 대역에 그려진 획을 숫자로 읽는다.");
+          box.scrollIntoView({ block: "nearest" });
+        }
+      }
+      sliders.forEach((slider) => { slider.oninput = draw; });
+      view.querySelector("[data-hint]").onclick = () => {
+        hintLevel = Math.min(3, hintLevel + 1);
+        const hints = [
+          "목소리는 아래쪽 긴 파장이다. 번호는 그보다 짧은 파장, 들리지 않는 쪽에 숨는다.",
+          "자리는 네 개다. 파장도 한 열에 하나씩이다. 신호 막대가 오르는 쪽으로 천천히 움직인다.",
+          "16 kHz에서 19 kHz 사이를 열마다 훑어라. 막대가 거의 차면 그 열의 획이 선다."
+        ];
+        view.querySelector("[data-hint-text]").textContent = hints[hintLevel - 1];
+      };
+      const codeInput = view.querySelector("[data-code]");
+      function submitCode() {
+        const raw = codeInput.value.replace(/\D/g, "");
+        if (raw !== "2314") {
+          ui.say("밝아진 네 열을 왼쪽부터 읽는다. 파장이 어긋나면 획이 다시 끊긴다.", "bad");
+          return;
+        }
+        ui.finish("결제 단말기는 술집이고, 오 분 뒤의 비명도 같은 파일 안이다. 연구동까지는 걸어서 15분. TRACE-2314.");
+        const keep = wrap.querySelector("[data-keep]");
+        if (keep) keep.scrollIntoView({ block: "nearest" });
+      }
+      view.querySelector("button[data-read]").onclick = submitCode;
+      codeInput.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        e.stopPropagation();
+        submitCode();
+      });
+      draw();
     }
+
     ui.slot.querySelectorAll("[data-v]").forEach((btn) => {
       btn.onclick = () => {
         ui.slot.querySelectorAll("[data-v]").forEach((b) => b.classList.remove("on"));
@@ -84,42 +191,14 @@
           ui.say("진폭은 비명 그대로다. 언제인지는 파형에 없다.");
         } else if (v === "size") {
           view.innerHTML = '<p class="mono-block">길이 8초\n예상 크기 약 700KB\n실제 크기 1.4MB\n\n가청 대역 밖의 샘플이 많다.</p>';
-          ui.say("용량은 힌트다. 그 데이터가 앉은 대역을 봐야 한다.");
+          ui.say("용량은 힌트다. 그 에너지가 앉은 파장을 스펙트로그램에서 찾아야 한다.");
         } else {
-          view.innerHTML = specGrid() + '<div class="tools"><button type="button" class="tiny" data-zoom>고주파 대역을 확대</button></div><div data-zoombox></div>';
-          ui.say("아래쪽은 목소리다. 맨 위 대역만 유난히 규칙적이다.");
-          view.querySelector("[data-zoom]").onclick = () => {
-            view.querySelector("[data-zoombox]").innerHTML =
-              '<div class="zoom-digits">' + digits() + "</div>" +
-              '<div class="field"><label>읽힌 숫자</label><input data-code maxlength="5" inputmode="numeric" placeholder="네 자리"><button type="button" class="tiny" data-read>확인</button></div>';
-            view.querySelector("[data-read]").onclick = () => {
-              const raw = view.querySelector("[data-code]").value.replace(/\s/g, "");
-              if (raw === "2314" || raw === "23:14") showReceipt();
-              else ui.say("고주파 띠의 밝은 칸을 네 자리로 읽는다.", "bad");
-            };
-          };
+          openTuner();
+          ui.say("비명은 아래쪽에 깔린다. 번호는 짧은 파장 네 개에 나뉘어 있다. 열마다 파장을 맞춰라.");
         }
       };
     });
 
-    function showReceipt() {
-      ui.say("결제 장소와 비명의 시각을 나란히 둔다.");
-      ui.slot.innerHTML =
-        '<div class="cols"><div class="col"><h5>고주파 표식</h5><p class="mono-block">2314\n녹음 앱이 함께 심은 시각\n비명이 난 순간</p></div>' +
-        '<div class="col"><h5>같은 휴대폰의 결제</h5><p class="receipt">학교앞술집\n2026-10-30 23:09\n38,000원\n승인</p></div></div>' +
-        '<p>이 두 기록이 같이 말하는 것은.</p><div class="q">' +
-        '<button type="button" class="choice" data-a="lab">혜진이 23:14에 연구실에 있었다</button>' +
-        '<button type="button" class="choice" data-a="bar">23:09 결제와 23:14 비명이 모두 술집이다</button>' +
-        '<button type="button" class="choice" data-a="fake">녹음은 위조다</button></div>';
-      ui.slot.querySelectorAll("[data-a]").forEach((b) => {
-        b.onclick = () => {
-          const a = b.dataset.a;
-          if (a === "bar") ui.finish("결제 단말기는 술집이고, 오 분 뒤의 비명도 같은 파일 안이다. 연구동까지는 걸어서 15분. TRACE-2314.");
-          else if (a === "lab") ui.say("결제 장소가 술집이다. 연구실로 이어지지 않는다.", "bad");
-          else ui.say("표식은 녹음 앱의 시각이다. 위조라고 볼 근거는 이 파일에 없다.", "bad");
-        };
-      });
-    }
   }
 
   function stego(wrap, api) {
